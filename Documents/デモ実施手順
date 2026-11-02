@@ -1,0 +1,569 @@
+はい。ここからは文書作成よりも、OpenBOM上にAGV-100というProduct Modelを実際に作る10日間として整理するのがよいです。OpenBOMはItem/BOM、Revision、Change Management、Product Cost Management、Sourcingなどを提供しているため、この順番ならPLMの基本から変更管理まで段階的に学べます。
+
+全体ロードマップ
+Day	テーマ	その日に理解すること	成果物1	環境・データモデル	PLMのObject/Attribute	データモデル
+2	Product / Part	Itemと属性	Part Master
+3	EBOM	製品構成・親子関係	AGV-100 EBOM
+4	Requirement / 設計諸元	要求と設計値	Requirement/Parameter
+5	Cost	原価の構造化	Cost Table
+6	Cost Roll-up	BOM×Cost	製品原価
+7	Supplier / Quote	調達情報との関係	Supplier/Sourcing
+8	Revision / Baseline	構成の凍結	Rev.A
+9	ECR/ECO	変更管理	ECO-001
+10	Rev.B / Impact	差分・影響分析	Rev.A vs Rev.B
+
+1日60～90分程度を想定します。10日後には、単にOpenBOMの操作を覚えるのではなく、「PLMに何をどう持たせるべきか」を説明できる状態を目標にします。
+
+DAY 1｜PLMデータモデルを設計する
+目的
+
+いきなりデータ登録を始めず、
+
+何をObjectにして、何をAttributeにして、どう関連付けるか
+
+を決めます。
+
+AGV-100の基本モデル
+Product
+ AGV-100
+   │
+   ├─ Requirement
+   ├─ Design Parameter
+   ├─ EBOM
+   │   └─ Part
+   ├─ Cost
+   ├─ Supplier
+   └─ Document
+
+
+まず以下のObject候補を定義します。
+
+Product
+Part
+Requirement
+Design Parameter
+Supplier
+Quote
+Document
+Change
+重要な判断
+
+例えば「最大積載量 500kg」を、
+
+Wordに書くのではなく
+
+Parameter Name = Max Payload
+Value          = 500
+Unit           = kg
+
+
+という構造化情報にする。
+
+DAY 1成果物
+
+AGV-100 PLMデータモデル v1
+
+ここではまだEBOMを作り込みません。
+
+DAY 2｜Product / Partを登録する
+
+ここからOpenBOMを触ります。
+
+Catalogを作る
+
+例：
+
+AGV Product Catalog
+
+登録対象：
+
+AGV-100  Product
+ME-100   Mechanical Unit
+DU-100   Drive Unit
+EL-100   Electrical Unit
+CS-100   Control System
+
+MT-100   Drive Motor
+GR-100   Gear Unit
+BT-100   Battery
+...
+
+
+まず10～20品目程度で十分です。
+
+Propertyを付ける
+
+共通属性：
+
+Part Number
+Name
+Description
+Type
+Category
+Make / Buy
+Lifecycle
+Revision
+Weight
+
+
+Motorなら、
+
+Rated Power
+Voltage
+Torque
+Weight
+
+
+も追加。
+
+DAY 2の重要ポイント
+
+ここで初めて、
+
+「Wordの部品概要書」と「PLMのPart Object」は何が違うのか
+
+を体感します。
+
+DAY 3｜AGV-100のEBOMを作る
+
+この日はPLMの王道です。
+
+EBOM
+AGV-100
+│
+├─ ME-100 Mechanical Unit ×1
+│
+├─ DU-100 Drive Unit ×2
+│   ├─ MT-100 Motor ×1
+│   └─ GR-100 Gear ×1
+│
+├─ EL-100 Electrical Unit ×1
+│   └─ BT-100 Battery ×1
+│
+└─ CS-100 Control System ×1
+
+
+OpenBOMは、multi-level BOMやEBOM/MBOMなど複数BOMタイプを中心機能として提供しています。
+
+確認すること
+Quantity
+Parent / Child
+Multi-level BOM
+Flattened BOM
+Where Used
+Catalog Itemとの関係
+
+例えばMT-100から、
+
+MT-100
+  ↓ Where Used
+DU-100
+  ↓
+AGV-100
+
+
+と追えるか確認。
+
+DAY 3成果
+
+AGV-100 EBOM Rev.Working
+
+まだRevisionは確定しません。
+
+DAY 4｜Requirement / Design Parameter
+
+この日は少しPLM上級編です。
+
+Requirement
+
+例えば、
+
+REQ-001
+Maximum Payload >= 500 kg
+
+REQ-002
+Maximum Speed >= 60 m/min
+
+REQ-003
+Operating Time >= 8 h
+
+
+を構造化。
+
+次にDesign Parameter。
+
+DP-001
+Max Payload = 500 kg
+
+DP-002
+Max Speed = 60 m/min
+
+DP-003
+Battery Voltage = 48 V
+
+
+そして理想的には、
+
+REQ-001
+   ↓ satisfied by
+DP-001
+   ↓ realized by
+AGV-100
+
+
+を作ります。
+
+ここはOpenBOMが本格PLMとしてどこまで表現できるのかを見るポイントでもあります。
+
+DAY 4成果
+
+Requirement → Parameter → Product
+
+のトレーサビリティ。
+
+DAY 5｜Cost Table
+
+ここは今回特に重視したいところです。
+
+Wordから原価情報を完全に外してPLM側に持ってきます。
+
+Product
+AGV-100
+
+Target Cost
+¥300,000
+
+Part
+MT-100
+Purchase Cost = ¥30,000
+
+GR-100
+Purchase Cost = ¥15,000
+
+BT-100
+Purchase Cost = ¥50,000
+
+
+属性候補：
+
+Target Cost
+Design Cost
+Purchase Cost
+Material Cost
+Process Cost
+Currency
+Cost Source
+Effective Date
+
+DAY 5で考えること
+
+原価には種類がある
+
+という点です。
+
+Target Cost
+Design Cost
+Estimated Cost
+
+        ↑ PLM領域
+
+-----------------------
+
+Standard Cost
+Purchase Actual
+Actual Cost
+
+        ↑ ERP領域
+
+
+ここは最初から区別しておきます。
+
+DAY 6｜BOM Cost Roll-up
+
+DAY 5で登録した原価をEBOMへ掛けます。
+
+例えば、
+
+MT-100
+¥30,000 × 2
+        ↓
+¥60,000
+
+GR-100
+¥15,000 × 2
+        ↓
+¥30,000
+
+
+と計算。
+
+最終的に、
+
+AGV-100
+
+Target Cost    ¥300,000
+      ↑
+      │ 比較
+      ↓
+Design Cost    ¥285,000
+
+
+のようにします。
+
+OpenBOMがProduct Cost Managementを製品能力として持っているため、ここは今回しっかり検証する領域です。
+
+DAY 6成果
+
+AGV-100 Costed EBOM
+
+これは重要な成果物です。
+
+DAY 7｜Supplier / Quote
+
+DAY 7でサプライチェーンにつなぎます。
+
+MT-100に、
+
+Part
+MT-100
+   │
+   └─ Supplier
+       DEMO Motor Co.
+          │
+          ├ Unit Price
+          ├ MOQ
+          ├ Lead Time
+          └ Quote
+
+
+を作ります。
+
+今回作った見積書をここで使います。
+
+QUO-2026-001.xlsx
+
+
+さらに、
+
+Quote Price      ¥30,000
+Cost Table       ¥30,000
+
+
+が一致する状態にします。
+
+ここで考えるテーマ
+
+Quoteの価格をPLMに転記するのか？
+
+Supplier CostをPLMが正本にするのか？
+
+ERP側を正本とするのか？
+
+ここは操作だけではなくSystem of Record検討です。
+
+DAY 7成果
+
+Part → Supplier → Quote → Cost
+
+のつながり。
+
+DAY 8｜Rev.A / Baseline
+
+ここまで作ったものを一旦凍結します。
+
+AGV-100
+
+Max Payload = 500kg
+Motor       = MT-100
+Target Cost = ¥300,000
+Design Cost = ¥xxx
+
+EBOM
+ ↓
+Released
+
+Revision A
+
+
+OpenBOMではRevisionを作成すると、Itemデータ、BOM、添付ファイルを含む変更不能なスナップショットとして保持できます。
+
+ここで重要なのは、
+
+Revision ≠ Backup
+
+ということ。
+
+Revisionは、
+
+「その時点で正式だった製品構成」
+
+です。
+
+DAY 8成果
+
+AGV-100 Rev.A Baseline
+
+DAY 9｜ECR / ECO変更
+
+ここから今回のデモのクライマックスです。
+
+顧客要求：
+
+最大積載量を500kg → 700kg
+
+変更要求を作ります。
+
+ECR-001
+Title
+AGV-100 Payload Enhancement
+
+Before
+500kg
+
+After
+700kg
+
+
+影響対象を確認。
+
+REQ-001
+ ↓
+Design Parameter
+ ↓
+DU-100
+ ↓
+MT-100
+ ↓
+GR-100
+ ↓
+Cost
+ ↓
+Drawing
+ ↓
+Test
+
+
+そしてECO。
+
+MT-100
+1.0kW / ¥30,000
+
+       ↓ Replace
+
+MT-200
+1.5kW / ¥38,000
+
+
+OpenBOMでは変更管理を、履歴、Revision、Change Request / Change Orderの3階層で扱い、CR/COには承認プロセスを組み合わせられます。
+
+DAY 9成果
+
+ECR-001 / ECO-001
+
+DAY 10｜Rev.B / Compare / Impact Analysis
+
+最後に変更を反映。
+
+Rev.B
+AGV-100
+
+                 Rev.A       Rev.B
+
+Payload           500kg       700kg
+
+Motor             MT-100      MT-200
+
+Motor Power       1.0kW       1.5kW
+
+Motor Cost        ¥30,000     ¥38,000
+
+EBOM              Rev.A       Rev.B
+
+
+そしてRevision比較。
+
+OpenBOMではRevision間のChange ReportをExcelとして出力でき、BOM差分を確認できます。
+
+さらにWhere Usedで、
+
+MT-100
+   ↓
+DU-100
+   ↓
+AGV-100
+
+
+を追跡。
+
+最終的に確認したいのは、
+
+ECR-001
+ │
+ ↓
+REQ-001
+ │
+ ↓
+Design Parameter
+ │
+ ↓
+DU-100
+ │
+ ↓
+MT-100 → MT-200
+ │
+ ↓
+EBOM Rev.B
+ │
+ ↓
+Cost増加
+
+
+まで影響を追跡できるかです。
+
+DAY 10成果
+
+AGV-100 Rev.A vs Rev.B Impact Report
+
+10日後に評価する13項目
+
+最後に結果をこの表へ入れます。
+
+評価領域	OpenBOM評価Product / Part	/5
+Attributes	/5
+Requirement	/5
+EBOM	/5
+Design Parameter	/5
+Cost Table	/5
+Cost Roll-up	/5
+Supplier / Quote	/5
+ECR / ECO	/5
+Revision / Baseline	/5
+Product Traceability	/5
+Relationship	/5
+Impact Analysis	/5
+合計	/65
+
+ただし、単純合計だけで製品を選ばないことも大事です。特に「簡単に操作できる」を重視するので、
+
+別枠で使い勝手も測ります
+
+毎日、
+
+環境構築の容易さ
+初見での分かりやすさ
+操作ステップ数
+データ登録のしやすさ
+設定変更の容易さ
+エラー・詰まりポイント
+
+を5段階で残します。
+
+そうすると10日後、
+
+「機能は65点中○点。しかしAGV-100を作るのに何時間かかったか」
+
+まで含めて評価できます。
+
+これで機能は多いけれど難しいPLMと、機能は少し限定されるが圧倒的に楽なPLMを公平に比較できます。
+
+今回の目的である**「楽に使えて、かつ一定以上のPLM能力を持つ製品を選ぶ」**にかなり直結する進め方です。
