@@ -1,0 +1,454 @@
+結論として、OpenBOMは今回の13項目のうち、BOM・属性・原価・Supplier・Revisionの学習にはかなり適しています。一方で、高度な要求管理、厳密な設計諸元管理、複雑な影響分析は、標準機能だけでは本格PLMより弱く、Custom Objectや参照関係を使ったモデル設計が必要です。
+
+私の現時点の評価は、13項目中7項目は標準的に実施可能、4項目は条件付き、2項目は限定的です。
+
+13項目での評価
+
+評価記号：
+
+◎：今回のデモを十分実施可能
+○：実施可能だが設定・工夫が必要
+△：簡易的には可能だが、本格PLM相当ではない
+#	評価項目	評価	OpenBOMでの実装イメージ1	Product / Part管理	◎	Catalog Item、BOM、Custom Object
+2	属性の自由定義	◎	Custom Property
+3	Requirement構造化	○	Custom ObjectでRequirementを作成
+4	EBOM管理	◎	多階層BOM、Catalog、Where Used
+5	設計諸元の構造化	○	Product/Item PropertyまたはCustom Object
+6	Cost Table	◎	Cost Property、Vendor、Sourcing
+7	BOM Cost Roll-up	◎	Formula、単階層・多階層Roll-up
+8	Supplier / Quote	◎	Vendor、Sourcing、RFQ、PO、添付文書
+9	ECR / ECO	○	Change Request / Change Order。上位契約が必要
+10	Revision / Baseline比較	◎	Revision、履歴、BOM Compare
+11	Product中心の情報参照	○	Item、BOM、Object Reference、xBOM
+12	Relationship自由定義	○	Object Reference。ただしCompany契約が前提
+13	Impact Analysis	△	Where Used、BOM比較、参照関係で部分対応
+1. Product / Part管理は問題ない
+
+OpenBOMの中心はCatalogとBOMです。
+
+今回なら、Catalogに次のItemを登録します。
+
+AGV-100    Product
+DU-100     Assembly
+MT-100     Purchased Part
+MT-200     Purchased Part
+GR-100     Purchased Part
+BT-100     Purchased Part
+
+
+各ItemはPart Numberで識別し、BOM上の行ではなく、再利用可能なCatalog Itemとして管理できます。製品情報をItemとBOMの組合せで持つ点は、今回の入門デモに適しています。OpenBOMはItem Management、BOM Management、Revision Control、Change Managementを製品能力として掲げています。
+
+ただし、本格PLMのように「Product」「Part」「Model」「Variant」を最初から厳密なビジネスオブジェクトとして分けるというより、Catalog Item、BOM、Custom Objectを組み合わせて表現するイメージです。
+
+2. 属性の自由定義は強い
+
+これはOpenBOMの得意領域です。
+
+AGV-100に次のPropertyを作れます。
+
+Product Type
+Max Payload
+Max Speed
+Operating Time
+Battery Voltage
+Product Weight
+Target Cost
+Estimated Cost
+Lifecycle State
+
+
+MT-100には、
+
+Motor Type
+Rated Power
+Rated Voltage
+Rated Torque
+Weight
+Make / Buy
+Supplier
+Unit Cost
+Lead Time
+
+
+を設定できます。
+
+PropertyにはText、Number、List、Multi-selection List、Reference、Checkbox、Image、Currency、Dateなどの型があります。Public Propertyと組織内だけで使用するPrivate Propertyも使い分けられます。
+
+したがって、設計諸元と原価をWordから出して構造化するという今回の方針は、十分試せます。
+
+3. Requirement管理は「可能だが本格専用機能ではない」
+
+OpenBOMにはCustom Objectがあり、Requirement、Specification、Product、Project、Quality Documentなどの独自オブジェクトを作れます。
+
+例えば、
+
+Requirement Object
+
+REQ-001
+Title              最大積載量
+Requirement Value  500
+Unit               kg
+Priority           Must
+Verification       Test
+Status             Approved
+
+
+を作れます。
+
+Object Referenceを使い、
+
+REQ-001
+    ↓ satisfied by
+AGV-100
+
+
+のような参照関係も作れます。Custom ObjectとObject ReferenceはCompanyサブスクリプション向けです。
+
+ただし懸念もあります。
+
+OpenBOMは本格的なRequirements ManagementやMBSEの専用製品ではありません。そのため、
+
+要求階層
+派生要求
+要求の論理式
+検証ケースとの厳格なトレーサビリティ
+要求変更の完全な影響分析
+SysMLモデルとの双方向連携
+
+まで求めると弱い可能性があります。
+
+今回のAGVデモで、REQ-001からREQ-010程度を管理するには十分ですが、要求管理能力を高く評価しすぎない方がよいです。
+
+4. EBOMは十分できる
+
+これは明確に得意です。
+
+AGV-100
+├─ ME-100 Mechanical Unit
+├─ DU-100 Drive Unit × 2
+│  ├─ MT-100 Motor × 1
+│  └─ GR-100 Gear × 1
+├─ EL-100 Electrical Unit
+│  └─ BT-100 Battery × 1
+└─ CS-100 Control System
+
+
+について、
+
+Single-level BOM
+Multi-level BOM
+Flattened BOM
+Where Used
+数量
+カスタム属性
+Revision
+BOM比較
+
+を試せます。
+
+またxBOMではEBOM、MBOM、Service BOM、Functional BOMなど複数のBOMタイプを扱い、ライフサイクル段階別の構造を管理できます。
+
+今回の第1フェーズは、まずEBOMに限定するのがよいです。MBOM/BOPは次の段階で、xBOMを使って評価します。
+
+5. 設計諸元は属性として持てる
+
+AGV-100に、
+
+Max Payload     500 kg
+Max Speed       60 m/min
+Operating Time  8 h
+Target Cost     300,000 JPY
+
+
+を持たせることは可能です。
+
+ただし「設計諸元」という専用データモデルが標準装備されているというより、Custom PropertyまたはCustom Objectを使って自分でモデル化する形です。
+
+したがって、評価では次の2段階に分けるべきです。
+
+評価観点	判定数値属性として設計諸元を持てるか	◎
+Requirementと設計諸元を意味的に関連付けられるか	○
+数式・単位・許容範囲・依存関係を厳格に管理できるか	△
+
+例えば、
+
+REQ-001：Max Payload >= 500kg
+Design Parameter：Max Payload = 500kg
+
+
+を別Objectとして関連付けることはできますが、要件と諸元の意味的整合性を自動判定する仕組みは別途工夫が必要です。
+
+6. Cost Tableはかなり相性がよい
+
+今回の原価モデルなら、次のPropertyを作ります。
+
+Target Cost
+Design Cost
+Purchase Cost
+Material Cost
+Process Cost
+Extended Cost
+Currency
+Effective Date
+Cost Source
+
+
+Part Catalogには、
+
+MT-100
+Purchase Cost = 30,000円
+
+MT-200
+Purchase Cost = 38,000円
+
+
+を登録します。
+
+Product側には、
+
+AGV-100
+Target Cost = 300,000円
+
+
+を持たせます。
+
+つまり、田中さんが指摘された、
+
+目標原価も設計諸元とともにPLM上で管理する
+
+という検証は実施可能です。
+
+7. BOM Cost Roll-upは明確にできる
+
+OpenBOMでは、Property列にFormulaを設定し、
+
+Extended Cost = Cost × Quantity
+
+
+を計算できます。
+
+さらに、単階層だけでなく、多階層BOMの下位部品原価を上位AssemblyへRoll-upできます。原価以外にもWeightやMassなど、数値Propertyを同様に積み上げられます。
+
+AGV-100では、
+
+MT-100      30,000 × 2 = 60,000円
+GR-100      15,000 × 2 = 30,000円
+BT-100      50,000 × 1 = 50,000円
+その他部品             = 135,000円
+組立加工費              = 25,000円
+────────────────────
+Design Cost             = 300,000円
+
+
+のようなデモができます。
+
+さらにMT-100をMT-200へ置換して、
+
+Rev.A：MT-100 × 2 = 60,000円
+Rev.B：MT-200 × 2 = 76,000円
+
+差額 = +16,000円
+
+
+を出せます。
+
+これはOpenBOMを最初の検証製品にする大きな理由です。
+
+8. Supplier / Quoteも比較的強い
+
+OpenBOMにはVendor List、Sourcing、Multi-sourcing、RFQ、Purchase Orderなどの調達系モデルがあります。
+
+Vendorには、
+
+Vendor Name
+Lead Time
+Minimum Order Quantity
+Shipping Method
+Certification
+
+などのCustom Propertyを追加できます。
+
+今回なら、
+
+MT-100
+├─ Vendor：DEMO Motor Co.
+├─ Unit Price：30,000円
+├─ MOQ：10
+├─ Lead Time：30日
+└─ Quote：QUO-2026-001.xlsx
+
+
+と構成できます。
+
+ただし実務では、契約価格や実購入価格の正本をERP/SRMに置く可能性があります。そのためLabでは、
+
+設計見積・調達候補価格はOpenBOM
+発注・実購入価格・実績原価はERP
+
+という境界も確認します。
+
+9. ECR / ECOは上位契約が必要
+
+OpenBOMには、
+
+自動変更履歴
+Item Revision
+Change Request
+Change Order
+承認プロセス
+Immutable Revision
+
+があります。
+
+ただし、単純Revisionと統制されたChange Managementは明確に分かれています。
+
+基本的なRevisionと履歴はItem/BOMを作れる契約で利用できますが、Change Request、Change Order、承認を伴う統制された変更管理はCompanyサブスクリプションが必要です。
+
+したがって、
+
+ECR-001
+  ↓ approval
+ECO-001
+  ↓
+MT-100 → MT-200
+  ↓
+AGV-100 Rev.A → Rev.B
+
+
+を正式に試すには、Company相当のTrialまたは契約が必要になる可能性が高いです。
+
+無料範囲だけなら、Revision作成と履歴確認まではできても、正式なECR/ECO承認までは制約されると見ておくべきです。
+
+10. Revision / Baseline比較はできる
+
+OpenBOMは変更履歴とRevisionを管理し、Revisionを変更不能な記録として保持します。BOM Compareもデータ管理機能として案内されています。
+
+今回なら比較対象は次のとおりです。
+
+対象	Rev.A	Rev.BMax Payload	500kg	700kg
+Motor	MT-100	MT-200
+Motor Cost	30,000円	38,000円
+AGV Design Cost	300,000円	316,000円
+Drive Unit図面	Rev.A	Rev.B
+
+ただし、「製品構成、要求、諸元、原価、文書を含む完全な構成Baseline」を一括でスナップショット比較できるかは、実機検証が必要です。
+
+BOM Revision単位では強いものの、異種Objectを横断する製品Baselineは本格PLMとの差が出やすいポイントです。
+
+11から13はOpenBOMの見極めどころ
+Product中心の参照：○
+
+Item、BOM、Catalog、File、Vendor、Changeを関連付けて辿ることはできます。またxBOMはEBOM、MBOM、SBOM等の構造間をつなぐDigital Threadを狙った機能です。
+
+ただし、画面やデータの中心がBOMと表形式になりやすいため、ArasのようなProduct Objectを中心とするリレーションシップ画面と同じ操作感かは確認が必要です。
+
+Relationship自由定義：○
+
+Custom ObjectのObject Referenceを使い、
+
+Requirement → Product
+Product → Design Parameter
+Part → Supplier
+Supplier → Quote
+Change → Affected Item
+
+
+の参照関係を作れます。Custom ObjectはCompany契約向けです。
+
+ただし、ArasのItemType/RelationshipTypeほどの自由度、Lifecycle連携、Relationship固有属性、アクセス権制御を持つかは比較ポイントになります。
+
+Impact Analysis：△
+
+OpenBOMでは、
+
+Where Used
+BOM Compare
+Revision History
+Change Request / Order
+Object Reference
+
+を使って影響対象を確認できます。2026年9月更新ではWhere Usedの検索・並べ替え・複数選択も強化されています。
+
+ただし、
+
+Requirement
+ ↓
+Design Parameter
+ ↓
+Product
+ ↓
+Part
+ ↓
+Drawing
+ ↓
+Cost
+ ↓
+Test
+
+
+をグラフとして自動展開し、変更影響を包括的に分析する能力は、実機で厳しく確認すべきです。
+
+無料検証で実施する範囲
+
+OpenBOMは14日間の無料Trialを案内しており、2026年の契約体系はTeam、Company、Enterpriseを基礎に、利用者ロールとデータレコード数で拡張する構成です。データレコードには固有Part Number、BOMレコード、管理対象ファイルなどが含まれ、RevisionやProperty自体はレコード数に含まれないとされています。
+
+今回のAGV-100なら、14日間を次のように使います。
+
+Day 1から3：標準データモデル
+Catalog作成
+AGV-100、DU-100、MT-100等を登録
+Custom Property作成
+EBOM登録
+Day 4から5：原価
+Target Cost
+Purchase Cost
+Extended Cost
+Multi-level Cost Roll-up
+Day 6から7：調達
+Vendor
+MT-100のSourcing
+Quote関連付け
+MT-100とMT-200の価格比較
+Day 8から10：変更
+Rev.A作成
+MT-100からMT-200へ置換
+Rev.B作成
+BOM Compare
+Cost差分確認
+Day 11から12：高度機能
+Requirement Custom Object
+Object Reference
+ECR/ECO
+xBOM
+Day 13から14：評価
+13項目で採点
+制約整理
+Arasとの比較観点を確定
+総合判断
+
+OpenBOMは、今回の最初のPLM Labとして適しています。
+
+特に強いのは、
+
+SaaSですぐ開始できる
+Product/Part属性を柔軟に作れる
+EBOMを扱いやすい
+Cost TableとFormulaを作れる
+多階層Cost Roll-upができる
+Vendor、Sourcing、RFQ/POとのつながりがある
+RevisionとBOM比較ができる
+
+という点です。
+
+一方で、次の3点は意識的に限界検証します。
+
+Requirementが本当にProduct Modelの一部として機能するか
+BOM以外のObjectを含むBaselineとImpact Analysisができるか
+自由なRelationshipを業務運用可能なレベルで管理できるか
+
+したがって位置づけは、
+
+OpenBOMはBOM・原価・調達・変更の実践入門として第一候補。
+ Arasは柔軟なデータモデル、Relationship、Lifecycle、Impact Analysisを深掘りする第二候補。
+
+が妥当です。まずOpenBOMで13項目を実行し、届かない部分を明確にしてからAras Innovatorへ進むと、両製品の思想の違いまで理解できます。
