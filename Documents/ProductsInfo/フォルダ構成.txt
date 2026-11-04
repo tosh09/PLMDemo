@@ -1,0 +1,25 @@
+PLM_AGV_Demo
+│
+├─ 01_Product
+│   ├─ AGV-100_Product_Spec_RevA.pdf
+│   └─ AGV-100_Product_Spec_RevB.pdf
+│
+├─ 02_Drawing
+│   ├─ AGV-100_Assembly_RevA.pdf
+│   ├─ DU-100_Assembly_RevA.pdf
+│   └─ FR-100_Drawing_RevA.pdf
+│
+├─ 03_Datasheet
+│   ├─ MT-100_Datasheet.pdf
+│   ├─ MT-200_Datasheet.pdf
+│   └─ BT-100_Datasheet.pdf
+│
+├─ 04_Master
+│   ├─ Part_Master.xlsx
+│   ├─ EBOM.xlsx
+│   ├─ MBOM.xlsx
+│   └─ BOP.xlsx
+│
+└─ 05_Change
+    ├─ ECR-001.pdf
+    └─ ECO-001.pdf
